@@ -99,10 +99,17 @@ for project in resp:
 			resp = t.train_project(project_id=projectModel.id, training_key=TKEY, training_key1=TKEY)
 			print('Result from retrain project: {}\n', resp)
 
-# print('Create a new project:\n')
-# newprojectsetting = Training.ProjectSettings()
-# newprojectupdatemodel = Training.ProjectUpdateModel(name="apitest", settings=newprojectsetting)
-# resp = t.create_project(training_key=TKEY, training_key1=TKEY, project_update_model=newprojectupdatemodel)
-# print('Result for creating new project: {}\n'.format(resp))
+var = raw_input("Would you like to create a new IRIS project? y/n \n")
+if var!='y':
+	sys.exit()
+
+var = raw_input("Please provide a name for your new project: \n")
+if var=='':
+	sys.exit()
+
+print('Create a new project: {}\n'.format(var))
+newprojectupdatemodel = Training.ProjectUpdateModel(name=var)
+resp = t.create_project(training_key=TKEY, training_key1=TKEY, project_update_model=newprojectupdatemodel)
+print('Result for creating new project: {}\n'.format(resp))
 
 
