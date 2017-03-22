@@ -6,8 +6,9 @@ import sys
 TKEY= os.environ['TKEY']
 PKEY= os.environ['PKEY']
 
-if len(sys.argv) == 1:
-	print ('Missing argument for directory path with pattern to test images. e.g. /Users/testuser/Documents/testimages/{}/')
+if len(sys.argv) != 3:
+	print ('\nUsage: python test.py <directory to test images> <IRIS project name> \n')
+	print ('<directory to test images> e.g. /Users/testuser/Documents/testimages/{}/ \n')
 	sys.exit()
 
 if TKEY is None or PKEY is None or TKEY == '' or PKEY == '':
@@ -15,7 +16,9 @@ if TKEY is None or PKEY is None or TKEY == '' or PKEY == '':
 	sys.exit()
 
 CLASSFILEPATH=sys.argv[1]
-print('Directory path to test images: {}'. format(CLASSFILEPATH))
+print('\nDirectory path to test images: {}\n'. format(CLASSFILEPATH))
+PROJECTNAME=sys.argv[2]
+print('IRIS project name: {}\n'. format(PROJECTNAME))
 print('Press enter to continue...')
 var = raw_input("Is this correct? y/n \n")
 if var!='y':
@@ -29,7 +32,7 @@ sys.path.insert(0, ROOT_DIR_PREDICTION)
 import training as Training
 import prediction as Prediction
 
-print('version: {}\n'.format(Training.__version__))
+print('SDK version: {}\n'.format(Training.__version__))
 t = Training.training
 p = Prediction.prediction
 
@@ -46,16 +49,16 @@ for project in resp:
 		print('Result for deleting project: {}\n'.format(resp))
 	
 	# Upload images
-	if ('upload' in projectModel.name):
-		print('Uploading images to project: {}\n', projectModel.name)
+	#if (PROJECTNAME in projectModel.name):
+		#print('Uploading images to project: {}\n', projectModel.name)
 		
 	# Train
-	if ('upload' in projectModel.name):
-		print('Training project: {}\n', projectModel.name)
+	#if (PROJECTNAME in projectModel.name):
+		#print('Training project: {}\n', projectModel.name)
 
 	needRetrain = False
 	# Evaluate
-	if ('ritatest' in projectModel.name):
+	if (PROJECTNAME in projectModel.name):
 		print('Evaluate against project: {}\n', projectModel.name)
 		# TODO: Get current iteration from project
 		iterationId = '7d95c074-224b-442c-809b-de11c8930ff3'
