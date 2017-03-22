@@ -19,7 +19,6 @@ CLASSFILEPATH=sys.argv[1]
 print('\nDirectory path to test images: {}\n'. format(CLASSFILEPATH))
 PROJECTNAME=sys.argv[2]
 print('IRIS project name: {}\n'. format(PROJECTNAME))
-print('Press enter to continue...')
 var = raw_input("Is this correct? y/n \n")
 if var!='y':
 	sys.exit()
@@ -40,7 +39,7 @@ print('Get projects:\n')
 resp = t.get_projects(training_key=TKEY)
 for project in resp:
 	projectModel = project
-	print('{}\n'.format(projectModel))
+	print('Project: {}\n'.format(projectModel))
 
 	# Delete
 	if ('deleteme' in projectModel.name):
@@ -50,18 +49,26 @@ for project in resp:
 	
 	# Upload images
 	#if (PROJECTNAME in projectModel.name):
-		#print('Uploading images to project: {}\n', projectModel.name)
+		#print('Uploading images to project: {}\n'.format(projectModel.name))
 		
 	# Train
 	#if (PROJECTNAME in projectModel.name):
-		#print('Training project: {}\n', projectModel.name)
+		#print('Training project: {}\n'.format(projectModel.name))
 
 	needRetrain = False
 	# Evaluate
 	if (PROJECTNAME in projectModel.name):
 		print('Evaluate against project: {}\n', projectModel.name)
-		# TODO: Get current iteration from project
-		iterationId = '7d95c074-224b-442c-809b-de11c8930ff3'
+		# Get last iteration for project
+		iterations = t.get_iterations(project_id=projectModel.id, training_key=TKEY, training_key1=TKEY)
+		if (len(iterations) < 2):
+			print('This project needs to be trained first. \n')
+			print('Training project: {}\n', projectModel.name)
+			resp = t.train_project(project_id=projectModel.id, training_key=TKEY, training_key1=TKEY)
+			print('Result from retrain project: {}\n', resp)
+
+		iterationId = iterations[len(iterations)-2].id
+		print('iterationid: {}\n'.format(iterationId))
 
 		# Process one class at a time
 		resp = t.get_classes(project_id=projectModel.id, training_key=TKEY, training_key1=TKEY)
@@ -101,6 +108,7 @@ for project in resp:
 			print('Retrain project: {}\n', projectModel.name)
 			resp = t.train_project(project_id=projectModel.id, training_key=TKEY, training_key1=TKEY)
 			print('Result from retrain project: {}\n', resp)
+			needRetrain = False
 
 var = raw_input("Would you like to create a new IRIS project? y/n \n")
 if var!='y':
