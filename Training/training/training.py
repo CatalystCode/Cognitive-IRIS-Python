@@ -1315,7 +1315,7 @@ class Training(object):
 
         deserialized = None
 
-        if response.status_code == 200:
+        if response.status_code == 200 and raw == False:
             deserialized = self._deserialize('object', response)
 
         if raw:

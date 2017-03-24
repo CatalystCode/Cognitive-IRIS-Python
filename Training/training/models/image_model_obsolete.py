@@ -51,3 +51,7 @@ class ImageModelObsolete(Model):
         self.mime_type = mime_type
         self.bounding_boxes = bounding_boxes
         self.performance = performance
+
+    def get_performance(self):
+        return self.performance
+

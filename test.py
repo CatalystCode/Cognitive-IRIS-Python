@@ -2,6 +2,23 @@ import requests
 import os
 import base64
 import sys
+import urllib2
+import random
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import itertools
+from sklearn import metrics
+from sklearn.metrics import confusion_matrix
+from PIL import Image, ImageDraw
+
+import utility
+
+try:
+    import cv
+except ImportError:
+    print 'Could not import cv, trying opencv'
+    import opencv.cv as cv
 
 TKEY= os.environ['TKEY']
 PKEY= os.environ['PKEY']
@@ -35,17 +52,29 @@ print('SDK version: {}\n'.format(Training.__version__))
 t = Training.training
 p = Prediction.prediction
 
+# var = raw_input("Would you like to create a new IRIS project? y/n \n")
+# if var=='y':
+# 	print('Create a new project: {}\n'.format(PROJECTNAME))
+# 	newprojectupdatemodel = Training.ProjectUpdateModel(name=var)
+# 	resp = t.create_project(training_key=TKEY, training_key1=TKEY, project_update_model=newprojectupdatemodel)
+# 	print('Result for creating new project: {}\n'.format(resp))
+y_true = []
+y_pred = []
+
+# print('crop images:\n')
+# crop_images(CLASSFILEPATH, 2)
+
 print('Get projects:\n')
 resp = t.get_projects(training_key=TKEY)
 for project in resp:
 	projectModel = project
 	print('Project: {}\n'.format(projectModel))
 
-	# Delete
-	if ('deleteme' in projectModel.name):
-		print('Delete project: {}\n', projectModel.name)
-		resp = t.delete_project(project_id=projectModel.id, training_key=TKEY, training_key1=TKEY)
-		print('Result for deleting project: {}\n'.format(resp))
+# 	# Delete
+# 	if ('deleteme' in projectModel.name):
+# 		print('Delete project: {}\n', projectModel.name)
+# 		resp = t.delete_project(project_id=projectModel.id, training_key=TKEY, training_key1=TKEY)
+# 		print('Result for deleting project: {}\n'.format(resp))
 	
 	# Upload images
 	#if (PROJECTNAME in projectModel.name):
@@ -67,7 +96,7 @@ for project in resp:
 			resp = t.train_project(project_id=projectModel.id, training_key=TKEY, training_key1=TKEY)
 			print('Result from retrain project: {}\n', resp)
 
-		iterationId = iterations[len(iterations)-2].id
+		iterationId = iterations[len(iterations)-3].id
 		print('iterationid: {}\n'.format(iterationId))
 
 		# Process one class at a time
@@ -93,34 +122,68 @@ for project in resp:
 					data = open(filePath, 'rb').read()
 					resp = p.evaluate_image(project_id=projectModel.id, image_data=data, iteration_id=iterationId, prediction_key=PKEY, prediction_key1=PKEY)
 					classifications = resp.get_classifications()
-					predictedClass = classifications[0].get_class()
-					predictedProb = classifications[0].get_probability()
-					print('Result for evaluate_image: [class: {}, prob: {}] \n'.format(predictedClass, predictedProb))
-					# If predicted class is incorrect, upload to the right class
-					if (predictedClass != className):
-						class_id = classes[predictedClass]
-						print ('Uploading image to class: {}] \n'.format(class_id))
-						resp = t.post_images_for_class(project_id=projectModel.id, class_id=class_id, image_data=data, training_key=TKEY, training_key1=TKEY)
-						print ('Result from uploading image to class: {}] \n'.format(resp))
-						if (resp.get_isSuccessful()):
-							needRetrain = True
-		if (needRetrain):
-			print('Retrain project: {}\n', projectModel.name)
-			resp = t.train_project(project_id=projectModel.id, training_key=TKEY, training_key1=TKEY)
-			print('Result from retrain project: {}\n', resp)
-			needRetrain = False
+					i = 0
+					for classification in classifications:
+						predictedClass = classification.get_class()
+						predictedProb = classification.get_probability()
+						#print('Result for evaluate_image: [class: {}, prob: {}] \n'.format(predictedClass, predictedProb))
+						if i == 0:
+							print('Top result for evaluate_image: [class: {}, prob: {}] \n'.format(predictedClass, predictedProb))
+							y_true.append(className)
+							y_pred.append(predictedClass)
+						i = i+1
 
-var = raw_input("Would you like to create a new IRIS project? y/n \n")
-if var!='y':
-	sys.exit()
+		print(metrics.classification_report(y_true, y_pred))
+		# Compute confusion matrix
+		cnf_matrix = confusion_matrix(y_true, y_pred)
+		np.set_printoptions(precision=2)
 
-var = raw_input("Please provide a name for your new project: \n")
-if var=='':
-	sys.exit()
+		# Plot non-normalized confusion matrix
+		plt.figure()
+		class_names = sorted(set(y_true))
+		utility.plot_confusion_matrix(cnf_matrix, classes=class_names,
+		                      title='Confusion matrix, without normalization')
 
-print('Create a new project: {}\n'.format(var))
-newprojectupdatemodel = Training.ProjectUpdateModel(name=var)
-resp = t.create_project(training_key=TKEY, training_key1=TKEY, project_update_model=newprojectupdatemodel)
-print('Result for creating new project: {}\n'.format(resp))
+		# Plot normalized confusion matrix
+		plt.figure()
+		plot_confusion_matrix(cnf_matrix, classes=class_names, normalize=True,
+		                      title='Normalized confusion matrix')
+
+		plt.show()
+					# # If predicted class is incorrect, upload to the right class
+					# if (predictedClass != className):
+					# 	class_id = classes[className]
+					# 	# Generate crop images from failed image
+					# 	source_image = Image.open(filePath)
+					# 	source_width, source_height = source_image.size
+					# 	print 'Image was {}x{}'.format(source_width, source_height)
+
+					# 	ratio = round(random.uniform(0.8, 1),2)
+					# 	print 'cropping ratio', ratio
+					# 	target_width = source_width * ratio
+					# 	target_height = source_height * ratio
+
+					# 	target_x1 = (source_width - target_width)/2
+					# 	target_y1 = (source_height - target_height)/2
+
+					# 	print 'Image new {}x{}'.format(target_width, target_height)
+					# 	coords = (target_x1, target_y1, target_width, target_height)
+					# 	print 'Cropping to', coords
+					# 	newFilePath = 'output/_new_' + file
+					# 	final_image = source_image.crop(coords)
+					# 	final_image.save(newFilePath)
+					# 	newFileData = open(newFilePath, 'rb').read()
+
+					# 	print ('Uploading image to class: {}] \n'.format(class_id))
+					# 	resp = t.post_images_for_class(project_id=projectModel.id, class_id=class_id, image_data=newFileData, training_key=TKEY, training_key1=TKEY)
+					# 	print ('Result from uploading image to class: {}] \n'.format(resp))
+					# 	if (resp.get_isSuccessful()):
+					# 		needRetrain = True
+		# if (needRetrain):
+		# 	print('Retrain project: {}\n', projectModel.name)
+		# 	resp = t.train_project(project_id=projectModel.id, training_key=TKEY, training_key1=TKEY)
+		# 	print('Result from retrain project: {}\n', resp)
+		# 	needRetrain = False
+
 
 

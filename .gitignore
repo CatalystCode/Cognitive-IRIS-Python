@@ -3,3 +3,10 @@ __pycache__/
 *.py[cod]
 *$py.class
 *.pyc
+*.so
+numpy*
+scikit*
+scipy*
+sklearn/
+test.csv
+output/
