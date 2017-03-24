@@ -8,6 +8,9 @@ import os
 import base64
 import pandas as pd
 import sys
+import urllib2
+import random
+
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -16,6 +19,12 @@ import time
 
 from sklearn.metrics import confusion_matrix
 
+from PIL import Image, ImageDraw
+# try:
+#     import cv
+# except ImportError:
+#     print 'Could not import cv, trying opencv'
+#     import opencv.cv as cv
 
 def plot_confusion_matrix(cm, classes,
                           normalize=False,
@@ -50,27 +59,52 @@ def plot_confusion_matrix(cm, classes,
     plt.ylabel('True label')
     plt.xlabel('Predicted label')
 
-def crop_images(directory, numOfCrops):
+def crop_images(inputDirectory, numOfCrops, outputDirectory):
   # Generate crop images from failed image
-  for file in os.listdir(directory):
+  for file in os.listdir(inputDirectory):
     if file.endswith('.jpg'):
-      filePath = os.path.join(directory, file)
+      filePath = os.path.join(inputDirectory, file)
       print(filePath)
-      source_image = Image.open(filePath)
-      source_width, source_height = source_image.size
-      print 'Image was {}x{}'.format(source_width, source_height)
-      for x in range(0, numOfCrops):
-        ratio = round(random.uniform(0.8, 1),2)
-        print 'cropping ratio', ratio
-        target_width = source_width * ratio
-        target_height = source_height * ratio
+      crop_image(filePath, numOfCrops, outputDirectory, file)
 
-        target_x1 = (source_width - target_width)/2
-        target_y1 = (source_height - target_height)/2
+def crop_image(filePath, numOfCrops, outputDirectory, fileName):
+  # Generate crop images from image
+  source_image = Image.open(filePath)
+  source_width, source_height = source_image.size
+  print 'Image was {}x{}'.format(source_width, source_height)
+  for x in range(0, numOfCrops):
+    ratio = round(random.uniform(0.8, 1),2)
+    print 'cropping ratio', ratio
+    target_width = source_width * ratio
+    target_height = source_height * ratio
 
-        print 'Image new {}x{}'.format(target_width, target_height)
-        coords = (target_x1, target_y1, target_width, target_height)
-        print 'Cropping to', coords
-        newFilePath = '{}{}_{}'.format(directory, x, file)
-        final_image = source_image.crop(coords)
-        final_image.save(newFilePath)
+    target_x1 = (source_width - target_width)/2
+    target_y1 = (source_height - target_height)/2
+
+    print 'Image new {}x{}'.format(target_width, target_height)
+    coords = (target_x1, target_y1, target_width, target_height)
+    print 'Cropping to', coords
+    newFilePath = '{}{}_{}'.format(outputDirectory, x, fileName)
+    final_image = source_image.crop(coords)
+    final_image.save(newFilePath)
+    return newFilePath
+
+def plot_project(y_true, y_pred):
+  print(metrics.classification_report(y_true, y_pred))
+  # Compute confusion matrix
+  cnf_matrix = confusion_matrix(y_true, y_pred)
+  np.set_printoptions(precision=2)
+
+  # Plot non-normalized confusion matrix
+  plt.figure()
+  class_names = sorted(set(y_true))
+  plot_confusion_matrix(cnf_matrix, classes=class_names,
+                        title='Confusion matrix, without normalization')
+
+  # Plot normalized confusion matrix
+  plt.figure()
+  plot_confusion_matrix(cnf_matrix, classes=class_names, normalize=True,
+                        title='Normalized confusion matrix')
+
+  plt.show()
+
